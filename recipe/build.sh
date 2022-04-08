@@ -9,15 +9,21 @@ patch arithchk.c ${RECIPE_DIR}/patch_arithchk
 
 # Using the makefile provided with the package
 # but adding the -fPIC option to the CFLAGS
-sed 's/CFLAGS = -O/CFLAGS = -O -fPIC/g' makefile.u > Makefile
 # Use the builtin compiler toolchain
-sed -i.bak -e"s/CC = cc/CC = ${CC}/g" Makefile
-sed -i.bak -e"s/ld /${LD} /g" Makefile
-sed -i.bak -e"s/ar r/${AR} r/g" Makefile
-# Allow the undefined _MAIN__ symbol in the shared library.
-sed -i.bak \
-"s;\$(CC) -shared;\$(CC) -shared \$(CFLAGS) -Wl,-U,_MAIN__ -Wl,-rpath,${PREFIX}/lib ;g"\
-Makefile
+sed -e's/CFLAGS = -O/CFLAGS = -O -fPIC/g' \
+  -e"s;CC = cc;CC = ${CC};g" \
+  -e"s;ld ;${LD} ;g" \
+  -e"s;ar r;${AR} r;g" \
+makefile.u > Makefile
+
+# If this is a mac, allow the main symbol to be undefined in the shared library
+if [ "$(uname)" == "Darwin" ]; then
+  sed -i '' \
+  -e "s;\$(CC) -shared;\$(CC) -shared \$(CFLAGS) -Wl,-U,_MAIN__ -Wl,-rpath,${PREFIX}/lib ;g"\
+  Makefile
+fi
+
+cat Makefile
 
 make hadd
 make all
@@ -46,11 +52,11 @@ cp libf2c.so ${PREFIX}/lib/libf2c.so
 # Now build the f2c executable
 cd ../src
 
-cp makefile.u Makefile
 # Use the builtin compiler toolchain
-sed -i.bak -e"s/CC = cc/CC = ${CC}/g" Makefile
-sed -i.bak -e"s/ld /${LD} /g" Makefile
-sed -i.bak -e"s/ar r/${AR} r/g" Makefile
+sed -e"s;CC = cc;CC = ${CC};g" \
+  -e"s;ld ;${LD} ;g" \
+  -e"s;ar r;${AR} r;g" \
+  makefile.u > Makefile
 
 make f2c
 
