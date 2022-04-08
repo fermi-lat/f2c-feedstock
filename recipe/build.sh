@@ -10,19 +10,14 @@ patch arithchk.c ${RECIPE_DIR}/patch_arithchk
 # Using the makefile provided with the package
 # but adding the -fPIC option to the CFLAGS
 sed 's/CFLAGS = -O/CFLAGS = -O -fPIC/g' makefile.u > Makefile
-
-# If this is a mac, allow the main symbol to be undefined in the shared library
-if [ "$(uname)" == "Darwin" ]; then
-  sed -i '' \
-  -e "s;\$(CC) -shared;\$(CC) -shared \$(CFLAGS) -Wl,-U,_MAIN__ -Wl,-rpath,${PREFIX}/lib ;g"\
-  Makefile
-fi
-
-# The Makefile directly calls "cc", which is sometimes not the name
-# of the compiler. So we create a link here and add this directory
-# to PATH
-ln -s ${CC} cc
-export PATH=${PATH}:${PWD}
+# Use the builtin compiler toolchain
+sed -i.bak -e"s/CC = cc/CC = ${CC}/g" Makefile
+sed -i.bak -e"s/ld /${LD} /g" Makefile
+sed -i.bak -e"s/ar r/${AR} r/g" Makefile
+# Allow the undefined _MAIN__ symbol in the shared library.
+sed -i.bak \
+"s;\$(CC) -shared;\$(CC) -shared \$(CFLAGS) -Wl,-U,_MAIN__ -Wl,-rpath,${PREFIX}/lib ;g"\
+Makefile
 
 make hadd
 make all
@@ -52,6 +47,10 @@ cp libf2c.so ${PREFIX}/lib/libf2c.so
 cd ../src
 
 cp makefile.u Makefile
+# Use the builtin compiler toolchain
+sed -i.bak -e"s/CC = cc/CC = ${CC}/g" Makefile
+sed -i.bak -e"s/ld /${LD} /g" Makefile
+sed -i.bak -e"s/ar r/${AR} r/g" Makefile
 
 make f2c
 
@@ -60,6 +59,6 @@ mkdir -p ${PREFIX}/bin
 cp f2c ${PREFIX}/bin/f2c
 
 # Install the pkg-config file
+echo "Version: ${PKG_VERSION}" >> ${RECIPE_DIR}/f2c.pc
 mkdir -p ${PREFIX}/lib/pkgconfig
 cp ${RECIPE_DIR}/f2c.pc ${PREFIX}/lib/pkgconfig/f2c.pc
-echo "Version: ${PKG_VERSION}" >> ${PREFIX}/lib/pkgconfig/f2c.pc
